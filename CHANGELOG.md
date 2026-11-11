@@ -25,6 +25,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Horvitz-Thompson weights for unbiased sums. The sample is spread over the
   mesh, the same in every pose, bitwise the same from run to run on CPU and
   on CUDA, and compiles to one graph.
+- `Mean` and `Variance` now support opt-in tensor-aware streaming with detached
+  state, state combination, and `ShardTensor` reductions over declared
+  observation axes.
+  Existing metric constructors retain their behavior. Public `TensorAccumulator`
+  and `StatisticRule` support custom statistics through `summarize`, `merge`, and
+  `result` hooks, with built-in `MeanRule` and `VarianceRule`. `SumReduction`
+  defines the type of the completed-reduction callback, including its `keepdim`
+  argument. Fresh summaries transfer ownership to the accumulator. Variance
+  merging reuses scratch storage while preserving both input states and rollback
+  after failed updates. The examples cover weighted means, Gaussian process (GP)
+  mixtures, Concrete Dropout, observables, and conformal calibration.
 - Groups experimental scalar and field GP heads under `experimental.uq.gp`.
   Both this namespace and `experimental.uq` expose the heads without `gpytorch`;
   constructing a head raises an installation error if it is missing.
@@ -444,6 +455,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The container build compiles NATTEN from source with C++20 when no
+  prebuilt NATTEN wheel is supplied, so it builds on PyTorch 2.15 base
+  images, whose headers require C++20.
+- The container build compiles pyg-lib from source without the uv cache, so
+  it no longer reuses a pyg-lib wheel built against an older PyTorch, which
+  failed to load with an undefined symbol after a base image upgrade.
+- `DistributedManager` now initializes on CPU-only hosts, where PyTorch rejected
+  its CPU `device_id` and a missing local rank raised `ZeroDivisionError`.
+  `cleanup()` no longer raises after a failed initialization.
 - `initialize_mlflow` offline mode logs to SQLite (`./mlruns/mlflow.db`)
   instead of the file store that current MLflow rejects.
 - `docs/test_scripts` run again on current PhysicsNeMo.
